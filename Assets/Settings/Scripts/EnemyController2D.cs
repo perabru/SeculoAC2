@@ -12,6 +12,7 @@ public sealed class EnemyController2D : MonoBehaviour
     [SerializeField] private float moveSpeed = 2.5f;
     [SerializeField] private float attackRange = 0.9f;
     [SerializeField] private int attackDamage = 1;
+    [SerializeField, Min(0.02f)] private float attackWindup = 0.3f;
     [SerializeField] private float attackCooldown = 1f;
 
     [Header("Vida")]
@@ -21,6 +22,8 @@ public sealed class EnemyController2D : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private PlayerController2D target;
     private float nextAttackAt;
+    private float attackHitsAt;
+    private bool preparingAttack;
     private float hitFlashUntil;
     private Color originalColor;
 
@@ -48,35 +51,54 @@ public sealed class EnemyController2D : MonoBehaviour
         if (IsDead)
             return;
 
-        float horizontalSpeed = 0f;
-        if (target != null && !target.IsDead)
-        {
-            Vector2 offset = (Vector2)target.transform.position - rb.position;
-            float distance = offset.magnitude;
-            if (distance <= detectionRange && !Physics2D.Linecast(rb.position, target.transform.position, terrainLayer))
-            {
-                if (spriteRenderer != null && Mathf.Abs(offset.x) > 0.01f)
-                    spriteRenderer.flipX = offset.x < 0f;
+        float now = Time.fixedTime;
+        rb.velocity = new Vector2(UpdateCombat(now), rb.velocity.y);
 
-                if (distance <= attackRange)
-                {
-                    if (Time.fixedTime >= nextAttackAt)
-                    {
-                        target.TakeDamage(attackDamage);
-                        nextAttackAt = Time.fixedTime + attackCooldown;
-                    }
-                }
-                else if (Mathf.Abs(offset.x) > 0.05f)
-                {
-                    horizontalSpeed = Mathf.Sign(offset.x) * moveSpeed;
-                }
-            }
+        if (spriteRenderer != null && now >= hitFlashUntil)
+            spriteRenderer.color = preparingAttack ? new Color(1f, 0.8f, 0.4f) : originalColor;
+    }
+
+    private float UpdateCombat(float now)
+    {
+        if (target == null || target.IsDead)
+        {
+            preparingAttack = false;
+            return 0f;
         }
 
-        rb.velocity = new Vector2(horizontalSpeed, rb.velocity.y);
+        Vector2 offset = (Vector2)target.transform.position - rb.position;
+        float distance = offset.magnitude;
+        bool canSeeTarget = distance <= detectionRange &&
+            !Physics2D.Linecast(rb.position, target.transform.position, terrainLayer);
 
-        if (spriteRenderer != null && Time.fixedTime >= hitFlashUntil)
-            spriteRenderer.color = originalColor;
+        if (preparingAttack)
+        {
+            if (now < attackHitsAt)
+                return 0f;
+
+            preparingAttack = false;
+            nextAttackAt = now + attackCooldown;
+            if (canSeeTarget && distance <= attackRange)
+                target.TakeDamage(attackDamage);
+            return 0f;
+        }
+
+        if (!canSeeTarget)
+            return 0f;
+
+        if (spriteRenderer != null && Mathf.Abs(offset.x) > 0.01f)
+            spriteRenderer.flipX = offset.x < 0f;
+
+        if (distance > attackRange)
+            return Mathf.Abs(offset.x) > 0.05f ? Mathf.Sign(offset.x) * moveSpeed : 0f;
+
+        if (now >= nextAttackAt)
+        {
+            preparingAttack = true;
+            attackHitsAt = now + attackWindup;
+        }
+
+        return 0f;
     }
 
     public void TakeDamage(int damage)

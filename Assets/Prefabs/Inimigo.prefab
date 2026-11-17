@@ -154,5 +154,6 @@ MonoBehaviour:
   moveSpeed: 2.5
   attackRange: 0.9
   attackDamage: 1
+  attackWindup: 0.3
   attackCooldown: 1
   maxHealth: 3
