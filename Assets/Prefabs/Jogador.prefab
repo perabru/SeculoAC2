@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 2624567677300006577}
   m_Layer: 0
   m_Name: Jogador
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -32,8 +32,7 @@ Transform:
   m_LocalPosition: {x: -0.1603, y: -0.0483, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 5280787324285272733}
+  m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -77,8 +76,8 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_Sprite: {fileID: -1422815056, guid: b4cbb9d553578204abdee01fd0f51141, type: 3}
+  m_SortingOrder: 3
+  m_Sprite: {fileID: 1878471544, guid: c2d2b7233eed46c41bbe7463a7ab5971, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -99,7 +98,7 @@ Animator:
   m_GameObject: {fileID: 2624567677300006581}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 99386e7f72313bc4e9b4b3b6fc6c11dc, type: 2}
+  m_Controller: {fileID: 9100000, guid: 6104db26058849e0810130747346bcd4, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -125,12 +124,12 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDrag: 0
   m_AngularDrag: 0.05
-  m_GravityScale: 1
-  m_Material: {fileID: 0}
-  m_Interpolate: 0
+  m_GravityScale: 2.5
+  m_Material: {fileID: 6200000, guid: a54e31b502ac4638bd583850ab63e0be, type: 2}
+  m_Interpolate: 1
   m_SleepingMode: 1
-  m_CollisionDetection: 0
-  m_Constraints: 0
+  m_CollisionDetection: 1
+  m_Constraints: 4
 --- !u!61 &2624567677300006735
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -144,7 +143,7 @@ BoxCollider2D:
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: -0.048394248, y: -0.0033989549}
+  m_Offset: {x: 0, y: -0.2}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -155,7 +154,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 0.8752018, y: 0.96679795}
+  m_Size: {x: 0.48, y: 0.56}
   m_EdgeRadius: 0
 --- !u!114 &2624567677300006577
 MonoBehaviour:
@@ -166,46 +165,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 2624567677300006581}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cea1f98fbd7f1a54d91668e9a6ad092f, type: 3}
+  m_Script: {fileID: 11500000, guid: 5224fa9a252f2294782f238e658ca1bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 4
-  jumpForce: 3
-  maxJumps: 1
-  groundDetector: {fileID: 5280787324285272733}
-  groundRadius: 0.15
+  moveSpeed: 5.5
+  jumpForce: 9.5
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
-  isGrounded: 1
---- !u!1 &6141845173087358503
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5280787324285272733}
-  m_Layer: 0
-  m_Name: Detector de chao
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5280787324285272733
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6141845173087358503}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.464, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2624567677300006576}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+    m_Bits: 8
+  wallSlideSpeed: 2.4
+  wallJumpVelocity: {x: 6.5, y: 9.5}
+  wallJumpLock: 0.18
+  attackOffset: {x: 0.55, y: -0.2}
+  attackRadius: 0.65
+  attackDamage: 1
+  attackCooldown: 0.35
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  maxHealth: 5
+  damageCooldown: 0.8
+  dashSpeed: 16
+  dashDuration: 0.16
+  dashCooldown: 0.7

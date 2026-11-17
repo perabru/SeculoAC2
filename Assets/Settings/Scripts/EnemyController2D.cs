@@ -1,128 +1,106 @@
 using UnityEngine;
 
-// Faz o inimigo procurar o jogador, perseguir, atacar e perder vida.
 [RequireComponent(typeof(Rigidbody2D))]
-public class EnemyController2D : MonoBehaviour
+public sealed class EnemyController2D : MonoBehaviour
 {
     [Header("Alvo")]
-    [SerializeField] private Transform player; // Quem o inimigo deve perseguir.
-    [SerializeField] private float detectionRange = 8f; // Distância máxima para perceber o jogador.
+    [SerializeField] private Transform player;
+    [SerializeField] private float detectionRange = 5f;
+    [SerializeField] private LayerMask terrainLayer = 1 << 3;
 
     [Header("Movimento e ataque")]
-    [SerializeField] private float moveSpeed = 2.5f; // Velocidade de perseguição.
-    [SerializeField] private float attackRange = 1.1f; // Distância em que consegue bater.
-    [SerializeField] private int attackDamage = 1; // Quanto de vida o ataque tira.
-    [SerializeField] private float attackCooldown = 1f; // Tempo entre ataques.
+    [SerializeField] private float moveSpeed = 2.5f;
+    [SerializeField] private float attackRange = 0.9f;
+    [SerializeField] private int attackDamage = 1;
+    [SerializeField] private float attackCooldown = 1f;
 
     [Header("Vida")]
-    [SerializeField] private int maxHealth = 3; // Vida máxima do inimigo.
+    [SerializeField, Min(1)] private int maxHealth = 3;
 
     private Rigidbody2D rb;
-    private int currentHealth;
-    private float lastAttackTime = -999f;
-    private bool isDead;
-    private int facingDirection = -1;
+    private SpriteRenderer spriteRenderer;
+    private PlayerController2D target;
+    private float nextAttackAt;
+    private float hitFlashUntil;
+    private Color originalColor;
 
-    public int CurrentHealth => currentHealth;
-    public int MaxHealth => maxHealth;
-    public bool IsDead => isDead;
+    public int CurrentHealth { get; private set; }
+    public int MaxHealth => Mathf.Max(1, maxHealth);
+    public bool IsDead => CurrentHealth == 0;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        currentHealth = maxHealth; // O inimigo começa com a vida cheia.
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null)
+            originalColor = spriteRenderer.color;
+
+        CurrentHealth = MaxHealth;
     }
 
     private void Start()
     {
-        // Se você não arrastou o jogador para o campo Player, tentamos encontrá-lo.
-        if (player == null)
-        {
-            PlayerController2D playerController = FindObjectOfType<PlayerController2D>();
-            if (playerController != null)
-                player = playerController.transform;
-        }
+        target = player != null ? player.GetComponent<PlayerController2D>() : FindObjectOfType<PlayerController2D>();
     }
 
     private void FixedUpdate()
     {
-        if (isDead) return;
-
-        // Sem um jogador definido, o inimigo fica parado.
-        if (player == null)
-        {
-            rb.velocity = new Vector2(0f, rb.velocity.y);
+        if (IsDead)
             return;
-        }
 
-        float distance = Vector2.Distance(transform.position, player.position);
-
-        // Só começa a agir quando o jogador entra no alcance de detecção.
-        if (distance > detectionRange)
+        float horizontalSpeed = 0f;
+        if (target != null && !target.IsDead)
         {
-            rb.velocity = new Vector2(0f, rb.velocity.y);
-            return;
+            Vector2 offset = (Vector2)target.transform.position - rb.position;
+            float distance = offset.magnitude;
+            if (distance <= detectionRange && !Physics2D.Linecast(rb.position, target.transform.position, terrainLayer))
+            {
+                if (spriteRenderer != null && Mathf.Abs(offset.x) > 0.01f)
+                    spriteRenderer.flipX = offset.x < 0f;
+
+                if (distance <= attackRange)
+                {
+                    if (Time.fixedTime >= nextAttackAt)
+                    {
+                        target.TakeDamage(attackDamage);
+                        nextAttackAt = Time.fixedTime + attackCooldown;
+                    }
+                }
+                else if (Mathf.Abs(offset.x) > 0.05f)
+                {
+                    horizontalSpeed = Mathf.Sign(offset.x) * moveSpeed;
+                }
+            }
         }
 
-        // Descobrimos de que lado o jogador está.
-        float direction = Mathf.Sign(player.position.x - transform.position.x);
-        if (direction != 0)
-            facingDirection = direction > 0 ? 1 : -1;
+        rb.velocity = new Vector2(horizontalSpeed, rb.velocity.y);
 
-        if (distance > attackRange)
-        {
-            // Ainda está longe para atacar, então vai atrás do jogador.
-            rb.velocity = new Vector2(direction * moveSpeed, rb.velocity.y);
-        }
-        else
-        {
-            // Chegou perto: para de andar e tenta atacar.
-            rb.velocity = new Vector2(0f, rb.velocity.y);
-
-            if (Time.time >= lastAttackTime + attackCooldown)
-                AttackPlayer();
-        }
-    }
-
-    private void AttackPlayer()
-    {
-        lastAttackTime = Time.time;
-
-        // Chama o método de dano do jogador, se ele tiver o script esperado.
-        PlayerController2D playerController = player.GetComponent<PlayerController2D>();
-        if (playerController != null)
-            playerController.TakeDamage(attackDamage);
+        if (spriteRenderer != null && Time.fixedTime >= hitFlashUntil)
+            spriteRenderer.color = originalColor;
     }
 
     public void TakeDamage(int damage)
     {
-        // Não deixa aplicar dano negativo ou continuar ferindo um inimigo morto.
-        if (isDead || damage <= 0) return;
+        if (IsDead || damage <= 0)
+            return;
 
-        currentHealth = Mathf.Max(0, currentHealth - damage);
-
-        if (currentHealth == 0)
-            Die();
-    }
-
-    private void Die()
-    {
-        isDead = true;
-        rb.velocity = Vector2.zero;
-        Debug.Log($"{gameObject.name} morreu.");
-
-        // Por enquanto, o inimigo desaparece quando a vida chega a zero.
-        // Depois, dá para trocar isso por uma animação de morte.
-        Destroy(gameObject);
+        CurrentHealth = Mathf.Max(0, CurrentHealth - damage);
+        if (IsDead)
+        {
+            rb.simulated = false;
+            Destroy(gameObject);
+        }
+        else if (spriteRenderer != null)
+        {
+            spriteRenderer.color = new Color(1f, 0.5f, 0.5f);
+            hitFlashUntil = Time.time + 0.12f;
+        }
     }
 
     private void OnDrawGizmosSelected()
     {
-        // Amarelo = alcance para perceber o jogador.
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
-
-        // Vermelho = alcance do ataque.
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
     }
